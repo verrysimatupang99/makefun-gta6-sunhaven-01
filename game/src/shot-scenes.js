@@ -24,26 +24,28 @@ function stageCover(world, seed) {
   dayNight.setTime(0.73);
   world.city.setNightLights(false);
   world.cash = 2840;
-  wantedSystem.stage(3, -30, 2);
-  const car = drive.spawnCar('sport', -21.5, 17, Math.PI, { parked: true, color: '#bf3033' });
+  wantedSystem.stage(3, -31, 265);
+  const car = drive.spawnCar('sport', -19.5, 272, Math.PI, { parked: true, color: '#bf3033' });
   car.userData.parked = true;
   car.userData.headlights.forEach((mat) => { mat.emissiveIntensity = 0.5; });
-  player.setPosition(-17.8, 14.5);
+  player.setPosition(-15, 267);
   player.object.rotation.y = -0.7;
   player.object.visible = true;
   world.activeCar = null;
   world.nearCar = car;
   world.speed = 0;
-  traffic.layoutAround(-26, 16, 0.9);
+  traffic.layoutAround(-26, 270, 0.9);
   traffic.cars.forEach((item) => { item.wait = 40; });
-  pedestrians.layoutAround(-26, 16, mulberry32(seed + 13));
+  pedestrians.layoutAround(-26, 270, mulberry32(seed + 13));
   missions.marker.visible = false;
   world.mission = { title: 'DELIVER THE PACKAGE', briefing: 'MARISOL IS WAITING AT THE CANTINA', marker: { x: -33, z: 0 } };
-  for (const cop of wantedSystem.cops) {
-    cop.red.material.emissiveIntensity = 3.4;
-    cop.blue.material.emissiveIntensity = 0.12;
+  for (const [index, cop] of wantedSystem.cops.entries()) {
+    cop.car.position.set(-33 + index * 1.6, 0, 264 - index * 2.8);
+    cop.car.rotation.y = Math.PI * 0.84;
+    cop.red.material.emissiveIntensity = 4.2;
+    cop.blue.material.emissiveIntensity = 3.8;
   }
-  place(world.camera, { x: -12.5, y: 5, z: 25.5 }, { x: -21.5, y: 1.2, z: 14.5 }, 52);
+  place(world.camera, { x: -4.5, y: 8.2, z: 248 }, { x: -19, y: 2.2, z: 270 }, 66);
   world.hud.setStars(3);
   world.hud.setCash(world.cash);
   world.hud.setObjective(world.mission);
@@ -73,7 +75,7 @@ function stageCity(world, seed) {
   for (const ped of pedestrians.peds) ped.group.visible = true;
   missions.marker.visible = false;
   world.mission = { title: 'SUNHAVEN BAY', briefing: 'THE WHOLE CITY IS YOURS TODAY', marker: { x: 26, z: 26 } };
-  place(world.camera, { x: 95, y: 108, z: -140 }, { x: 18, y: 2, z: 85 }, 60);
+  place(world.camera, { x: 112, y: 116, z: -125 }, { x: 18, y: 2, z: 108 }, 62);
   world.hud.setStars(0);
   world.hud.setCash(world.cash);
   world.hud.setObjective(world.mission);
@@ -95,12 +97,17 @@ function stageChase(world) {
   car.userData.headlights.forEach((mat) => { mat.emissiveIntensity = 2.6; });
   world.activeCar = car;
   world.speed = 23;
-  wantedSystem.stage(3, 26, -14);
+  wantedSystem.stage(4, 26, -14);
   let flip = false;
   for (const cop of wantedSystem.cops) {
     cop.car.userData.headlights.forEach((mat) => { mat.emissiveIntensity = 2.4; });
     cop.red.material.emissiveIntensity = flip ? 0.1 : 4.2;
     cop.blue.material.emissiveIntensity = flip ? 4.2 : 0.1;
+    if (cop.car.userData.siren) {
+      cop.car.userData.siren.red.material.emissiveIntensity = flip ? 0.1 : 4.2;
+      cop.car.userData.siren.blue.material.emissiveIntensity = flip ? 4.2 : 0.1;
+    }
+    cop.sirenPhase = flip ? Math.PI : 0;
     flip = !flip;
   }
   traffic.layoutAround(26, 10, 0.8);
@@ -177,4 +184,17 @@ export function applyShot(scene, name, world) {
     world.renderer.render(scene, world.camera);
     window.__shotReady = true;
   });
+  if (name === 'chase') {
+    const sirens = world.wantedSystem.cops.map((cop) => cop.car.userData.siren).filter(Boolean);
+    const animateSirens = (time) => {
+      const pulse = Math.sin(time * 0.012) > 0;
+      for (const siren of sirens) {
+        siren.red.material.emissiveIntensity = pulse ? 4.8 : 0.08;
+        siren.blue.material.emissiveIntensity = pulse ? 0.08 : 4.8;
+      }
+      world.renderer.render(scene, world.camera);
+      requestAnimationFrame(animateSirens);
+    };
+    requestAnimationFrame(animateSirens);
+  }
 }
