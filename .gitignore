@@ -1,0 +1,9 @@
+_kit/
+_prompts/
+_assets/
+_rec_*.log
+_shots.sh
+_shot_tmp/
+out/
+node_modules/
+*.pid

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#182026">
+<title>SUNHAVEN BAY</title>
+<style>
+  :root { color-scheme: dark; --ink: #f5f0e4; --muted: #b3b1a5; --amber: #edc16c; --red: #e95b4f; --panel: rgba(20, 27, 29, .78); --line: rgba(245, 240, 228, .2); }
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #101719; color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: 0; }
+  #letterbox-top, #letterbox-bottom { position: fixed; z-index: 3; left: 0; width: 100%; height: clamp(14px, 3.2vh, 34px); background: rgba(10, 13, 14, .48); pointer-events: none; }
+  #letterbox-top { top: 0; } #letterbox-bottom { bottom: 0; }
+  #hud { position: fixed; inset: 0; z-index: 4; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,.72); }
+  body.is-shot #title-screen, body.is-shot #pause-menu { display: none !important; }
+  #cash-panel { position: absolute; top: clamp(45px, 7vh, 72px); left: clamp(26px, 4vw, 68px); min-width: 190px; }
+  #cash-caption, .eyebrow { display: block; color: #e6d6b2; font-size: 10px; line-height: 1.5; font-weight: 700; letter-spacing: .2em; }
+  #cash-value { font-size: clamp(24px, 2.2vw, 34px); line-height: 1.05; font-weight: 800; letter-spacing: .015em; }
+  #wanted-panel { position: absolute; top: clamp(42px, 6.3vh, 68px); right: clamp(30px, 4.2vw, 70px); padding: 9px 12px 10px; background: rgba(20, 27, 29, .5); border-top: 2px solid rgba(236, 224, 197, .28); min-width: 162px; text-align: right; transition: border-color .2s, background .2s; }
+  #wanted-panel.active { border-color: #e55a50; background: rgba(37, 24, 23, .67); }
+  #wanted-caption { display: block; margin-bottom: 3px; color: #d3c8b0; font-size: 9px; letter-spacing: .22em; font-weight: bold; }
+  #wanted-stars { white-space: nowrap; color: rgba(239, 230, 210, .27); font-size: 23px; line-height: 1; letter-spacing: .09em; }
+  #wanted-stars .star.lit { color: #f1c45c; text-shadow: 0 0 10px rgba(236, 174, 54, .48); }
+  #mission-panel { position: absolute; top: clamp(44px, 7vh, 76px); left: 50%; transform: translateX(-50%) translateY(-5px); width: min(390px, 38vw); padding: 12px 17px 13px; opacity: 0; transition: opacity .22s, transform .22s; text-align: center; border-top: 2px solid rgba(238, 197, 109, .78); background: linear-gradient(180deg, rgba(21, 28, 29, .72), rgba(21, 28, 29, .25)); }
+  #mission-panel.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #mission-kicker { display: block; margin-bottom: 3px; color: var(--amber); font-size: 9px; font-weight: 800; letter-spacing: .22em; }
+  #mission-title { margin: 0; font-size: clamp(15px, 1.3vw, 20px); line-height: 1.12; font-weight: 800; letter-spacing: .055em; }
+  #mission-text { margin: 5px 0 0; color: #e0d7c6; font-size: 10px; line-height: 1.35; letter-spacing: .06em; }
+  #minimap-wrap { position: absolute; right: clamp(30px, 4vw, 65px); bottom: clamp(48px, 7vh, 76px); width: clamp(156px, 15vw, 204px); aspect-ratio: 1; padding: 5px; border: 1px solid rgba(238, 226, 199, .54); background: rgba(14, 20, 21, .64); box-shadow: 0 8px 28px rgba(0,0,0,.25); }
+  #minimap { display: block; width: 100%; height: 100%; }
+  #map-label { position: absolute; right: 0; bottom: calc(100% + 7px); color: #e6d7b7; font-size: 8px; font-weight: bold; letter-spacing: .2em; }
+  #map-n { position: absolute; left: 50%; top: 9px; transform: translateX(-50%); font-size: 8px; font-weight: bold; color: rgba(246,239,222,.7); }
+  #speedo { position: absolute; right: clamp(252px, 22vw, 325px); bottom: clamp(58px, 8vh, 85px); display: flex; gap: 8px; align-items: baseline; opacity: 0; transition: opacity .15s; }
+  #speedo.visible { opacity: 1; }
+  #speed-value { font-size: 32px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #speed-unit { color: #e6d7b7; font-size: 9px; letter-spacing: .15em; }
+  #prompt { position: absolute; left: 50%; bottom: clamp(62px, 9vh, 96px); transform: translateX(-50%) translateY(6px); display: flex; align-items: center; gap: 9px; opacity: 0; transition: opacity .15s, transform .15s; padding: 9px 13px; background: rgba(17, 23, 24, .8); border: 1px solid rgba(242, 224, 187, .34); font-size: 10px; font-weight: bold; letter-spacing: .12em; }
+  #prompt.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #keycap { display: inline-grid; place-items: center; width: 21px; height: 21px; color: #1b2020; background: #e9d6aa; font-size: 10px; }
+  #toasts { position: absolute; left: clamp(26px, 4vw, 68px); bottom: clamp(64px, 9vh, 98px); display: flex; flex-direction: column; gap: 6px; width: min(330px, 35vw); }
+  .toast { padding: 9px 12px; background: rgba(20, 27, 29, .78); border-left: 2px solid var(--amber); color: #f2eadb; font-size: 10px; font-weight: bold; letter-spacing: .1em; animation: toast-in .22s ease-out both; }
+  .toast.out { opacity: 0; transform: translateX(-8px); transition: .3s; }
+  @keyframes toast-in { from { opacity: 0; transform: translateX(-7px); } to { opacity: 1; transform: translateX(0); } }
+  #mission-banner { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -10px); width: min(520px, 55vw); padding: 24px 28px 21px; background: rgba(18, 25, 26, .88); border-top: 3px solid var(--amber); text-align: center; opacity: 0; transition: opacity .24s, transform .24s; }
+  #mission-banner.visible { opacity: 1; transform: translate(-50%, 0); }
+  #banner-kicker { display: block; color: var(--amber); font-size: 10px; font-weight: bold; letter-spacing: .24em; }
+  #banner-title { margin: 7px 0 4px; font-size: 25px; font-weight: 900; letter-spacing: .07em; }
+  #banner-sub { color: #ddd3bd; font-size: 11px; font-weight: bold; letter-spacing: .12em; }
+  #title-screen, #pause-menu { position: fixed; z-index: 6; inset: 0; display: grid; place-items: center; padding: 28px; background: linear-gradient(90deg, rgba(12,18,20,.8), rgba(13,18,20,.2) 58%, rgba(13,18,20,.14)); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
+  #title-screen.visible, #pause-menu.visible { opacity: 1; visibility: visible; }
+  .menu-content { width: min(440px, 90vw); margin-left: min(2vw, 32px); margin-right: auto; }
+  #brand-rule { width: 74px; height: 3px; margin-bottom: 18px; background: #d99b58; }
+  #brand-title { margin: 0; font-size: clamp(42px, 6.7vw, 84px); line-height: .83; font-weight: 900; letter-spacing: -.055em; text-shadow: 0 4px 14px rgba(0,0,0,.32); }
+  #brand-title span { display: block; color: #edc177; font-size: .55em; margin-top: 9px; letter-spacing: .21em; }
+  #tagline { max-width: 325px; margin: 24px 0 30px; color: #e0d5bf; font-size: 12px; line-height: 1.6; letter-spacing: .12em; }
+  .menu-actions { display: flex; flex-direction: column; width: min(285px, 75vw); gap: 9px; }
+  .menu-button { min-height: 48px; border: 0; background: #e4b76b; color: #1a2020; cursor: pointer; font: 800 11px Arial, sans-serif; letter-spacing: .16em; text-align: left; padding: 0 17px; transition: background .15s, transform .15s; }
+  .menu-button:hover:not(:disabled) { background: #f1cc85; transform: translateX(3px); }
+  .menu-button:focus-visible { outline: 2px solid #fff5dc; outline-offset: 3px; }
+  .menu-button.secondary { border: 1px solid rgba(237,225,201,.4); background: rgba(18,24,25,.54); color: #eee5d4; }
+  .menu-button:disabled { cursor: default; opacity: .55; }
+  #controls { margin-top: 27px; color: rgba(238,230,213,.75); font-size: 9px; line-height: 1.9; letter-spacing: .065em; }
+  #controls strong { color: #f0d7a6; }
+  #title-credit { margin-top: 24px; color: rgba(233,224,208,.48); font-size: 8px; letter-spacing: .18em; }
+  #shot-label { position: absolute; right: clamp(30px, 4vw, 65px); top: clamp(46px, 7vh, 78px); padding: 7px 10px; color: #f4e7cd; font-size: 9px; font-weight: bold; letter-spacing: .18em; background: rgba(14,20,21,.48); border-right: 2px solid rgba(238,193,108,.78); }
+  @media (max-width: 700px) {
+    #mission-panel { top: 90px; width: min(360px, 75vw); }
+    #cash-panel { top: 50px; }
+    #wanted-panel { top: 45px; min-width: 130px; }
+    #minimap-wrap { width: 138px; right: 19px; bottom: 32px; }
+    #speedo { right: 174px; bottom: 38px; }
+    #toasts { left: 18px; bottom: 42px; width: 42vw; }
+    .menu-content { margin: 0; }
+  }
+</style>
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.min.js"}}
+</script>
+</head>
+<body>
+<canvas id="game" aria-label="SUNHAVEN BAY, an open-world crime game"></canvas>
+<div id="letterbox-top"></div><div id="letterbox-bottom"></div>
+<div id="hud" aria-live="off">
+  <div id="cash-panel"><span id="cash-caption">AVAILABLE CASH</span><span id="cash-value">$500</span></div>
+  <div id="wanted-panel"><span id="wanted-caption">WANTED</span><div id="wanted-stars" aria-label="Wanted level"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div></div>
+  <div id="mission-panel"><span id="mission-kicker">CURRENT JOB</span><h2 id="mission-title">PICK UP VINNY</h2><p id="mission-text">VINNY COSTA HAS A LEAD. HEAD TO HIS GARAGE.</p></div>
+  <div id="shot-label"></div>
+  <div id="speedo"><span id="speed-value">00</span><span id="speed-unit">MPH</span></div>
+  <div id="prompt"><span id="keycap">E</span><span id="prompt-text">ENTER VEHICLE</span></div>
+  <div id="toasts"></div>
+  <div id="mission-banner"><span id="banner-kicker">JOB COMPLETE</span><h2 id="banner-title">DELIVER THE PACKAGE</h2><div id="banner-sub">PAID $650</div></div>
+  <div id="minimap-wrap"><span id="map-label">SUNHAVEN BAY</span><span id="map-n">N</span><canvas id="minimap" width="256" height="256"></canvas></div>
+</div>
+<section id="title-screen" class="visible" aria-label="Title screen">
+  <div class="menu-content">
+    <div id="brand-rule"></div>
+    <h1 id="brand-title">SUNHAVEN<span>BAY</span></h1>
+    <p id="tagline">A city of bright lights, borrowed cars, and favors that come due.</p>
+    <div class="menu-actions"><button class="menu-button" id="btn-start">START STORY</button><button class="menu-button secondary" id="btn-continue">NO SAVED STORY</button></div>
+    <div id="controls"><strong>WASD</strong> move / drive &nbsp; <strong>MOUSE</strong> look<br><strong>E</strong> enter or leave vehicle &nbsp; <strong>SHIFT</strong> run<br><strong>ESC</strong> pause &nbsp; <strong>M</strong> mute</div>
+    <div id="title-credit">SUNHAVEN BAY · A COASTAL STATE OF MIND</div>
+  </div>
+</section>
+<section id="pause-menu" aria-label="Pause menu">
+  <div class="menu-content"><div id="brand-rule"></div><h1 id="brand-title">PAUSED<span>SUNHAVEN BAY</span></h1><p id="tagline">Take a breath. The city will wait.</p><div class="menu-actions"><button class="menu-button" id="btn-resume">RETURN TO THE CITY</button><button class="menu-button secondary" id="btn-quit">SAVE &amp; EXIT</button></div></div>
+</section>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
